@@ -3,15 +3,19 @@
 ini_set('display_errors', 0);
 error_reporting(0);
 
-// Identifiants d'administration pour ce tableau de bord (À NE PAS LAISSER HARDCODÉ EN PRODUCTION)
-$visitor_admin_username = 'visiteurHACKER'; // Exemple: Un nom d'utilisateur spécifique pour le log des visiteurs
-$visitor_admin_password = 'visiteur1209ba'; // Exemple: Un mot de passe spécifique (DOIT ÊTRE HASHÉ EN PRODUCTION)
+// Identifiants d'administration pour ce tableau de bord
+// ATTENTION: CES VALEURS NE DOIVENT PAS RESTER HARDCODÉES EN PRODUCTION !
+// Utilisez des variables d'environnement ou un fichier de configuration sécurisé.
+$visitor_admin_username = getenv('ADMIN_USERNAME') ?: 'visiteurHACKER'; // Exemple: Un nom d'utilisateur spécifique pour le log des visiteurs
+// IMPORTANT: Utilisez password_hash() pour stocker le mot de passe hashé dans une BDD ou variable d'env sécurisée
+$visitor_admin_password_hash = getenv('ADMIN_PASSWORD_HASH') ?: password_hash('visiteur1209ba', PASSWORD_DEFAULT); // HASHÉ EN PRODUCTION
 
 // Constantes de connexion à la base de données (intégrées directement ici)
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'ONLY.NBA');
-define('DB_USER', 'nathanaelhacker6NBA');
-define('DB_PASS', 'nathanael1209ba');
+// Tente de récupérer la valeur de la variable d'environnement, sinon utilise la valeur par défaut
+define('DB_HOST', getenv('DB_HOST') ?: 'localhost');
+define('DB_NAME', getenv('DB_NAME') ?: 'ONLY.NBA');
+define('DB_USER', getenv('DB_USER') ?: 'nathanaelhacker6NBA');
+define('DB_PASS', getenv('DB_PASS') ?: 'nathanael1209ba');
 
 // Démarrage de la session si ce n'est pas déjà fait
 if (session_status() === PHP_SESSION_NONE) {
@@ -48,8 +52,8 @@ if (isset($_POST['username']) && isset($_POST['password'])) {
     $input_username = $_POST['username'];
     $input_password = $_POST['password'];
 
-    // Vérification simple (À REMPLACER PAR UNE VÉRIFICATION DE MOT DE PASSE HASHÉ EN PRODUCTION)
-    if ($input_username === $visitor_admin_username && $input_password === $visitor_admin_password) {
+    // Vérification sécurisée du mot de passe (UTILISEZ password_verify EN PRODUCTION)
+    if ($input_username === $visitor_admin_username && password_verify($input_password, $visitor_admin_password_hash)) {
         $_SESSION['authenticated_visitor_log'] = true;
         // Régénérer l'ID de session après une connexion réussie pour prévenir les attaques de fixation de session
         session_regenerate_id(true); 
@@ -59,6 +63,41 @@ if (isset($_POST['username']) && isset($_POST['password'])) {
         $error_message = "Nom d'utilisateur ou mot de passe incorrect.";
     }
 }
+
+// Traitement de la suppression (si authentifié et requête POST)
+if (isset($_POST['action']) && $_POST['action'] === 'delete_log' && isset($_POST['id'])) {
+    if (isset($_SESSION['authenticated_visitor_log']) && $_SESSION['authenticated_visitor_log'] === true) {
+        $log_id = filter_var($_POST['id'], FILTER_SANITIZE_NUMBER_INT);
+        if ($log_id) {
+            try {
+                $dsn = 'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4';
+                $pdo = new PDO($dsn, DB_USER, DB_PASS);
+                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+
+                $stmt = $pdo->prepare("DELETE FROM site_visitors WHERE id = :id");
+                $stmt->bindParam(':id', $log_id, PDO::PARAM_INT);
+                $stmt->execute();
+
+                if ($stmt->rowCount() > 0) {
+                    $_SESSION['success_message_delete'] = "Le log #{$log_id} a été supprimé avec succès.";
+                } else {
+                    $_SESSION['success_message_delete'] = "Aucun log trouvé avec l'ID #{$log_id} ou déjà supprimé.";
+                }
+            } catch (PDOException $e) {
+                error_log("Error deleting log: " . $e->getMessage());
+                $_SESSION['success_message_delete'] = "Erreur lors de la suppression du log #{$log_id}. " . $e->getMessage();
+            }
+        } else {
+            $_SESSION['success_message_delete'] = "ID de log invalide.";
+        }
+    } else {
+        $_SESSION['success_message_delete'] = "Non autorisé à supprimer ce log.";
+    }
+    header('Location: visitor_log.php', true, 302); // Rediriger après la suppression
+    exit();
+}
+
 
 // --- Début du Bloc d'Authentification ---
 // Si l'utilisateur n'est PAS authentifié, afficher le formulaire de connexion
@@ -573,7 +612,6 @@ try {
             100% { transform: scale(1); }
         }
     </style>
-    <!-- Content Security Policy (CSP) pour mitiger les attaques XSS et l'injection de code -->
     <meta http-equiv="Content-Security-Policy" content="
         default-src 'self';
         script-src 'self' https://cdn.tailwindcss.com;
@@ -620,7 +658,7 @@ try {
                 <p class="dashboard-card-value"><?php echo number_format($total_visits); ?></p>
                 <span class="dashboard-card-label">Nombre total de consultations de votre site</span>
             </div>
-             
+            
             <div class="dashboard-card">
                 <i class="fas fa-user-friends dashboard-card-icon"></i>
                 <h3 class="dashboard-card-title">Visiteurs Uniques</h3>
@@ -685,7 +723,6 @@ try {
             </div>
         </div>
 
-        <!-- NOUVEAU : Logs Détaillés des Visiteurs avec bouton de suppression -->
         <div class="logs-table-container col-span-full mb-10">
             <h3 class="list-section-title flex items-center"><i class="fas fa-list-alt mr-3 dashboard-card-icon"></i> Logs Détaillés des Visiteurs</h3>
             <?php if (empty($site_visitors_logs)): ?>
@@ -712,12 +749,11 @@ try {
                                     <td class="py-3 px-6 text-left font-medium"><?php echo htmlspecialchars($log['id'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="py-3 px-6 text-left"><?php echo htmlspecialchars($log['ip_address'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="py-3 px-6 text-left truncate max-w-xs" title="<?php echo htmlspecialchars($log['user_agent'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($log['user_agent'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td class="py-3 px-6 text-left truncate max-w-xs" title="<?php echo htmlspecialchars($log['page_visited'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($log['page_visited'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td class="py-3 px-6 text-left truncate max-w-xs" title="<?php echo htmlspecialchars($log['page_visited'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($log['page_visited'] ?: 'Non spécifié', ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="py-3 px-6 text-left whitespace-nowrap text-gray-500 text-xs"><?php echo htmlspecialchars($log['timestamp'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td class="py-3 px-6 text-left">
-                                        <button onclick="showDeleteLogModal(<?php echo htmlspecialchars($log['id'], ENT_QUOTES, 'UTF-8'); ?>)"
-                                                class="bg-red-500 text-white py-1 px-3 rounded-md text-sm font-semibold hover:bg-red-600 transition duration-150 ease-in-out flex items-center justify-center">
-                                            <i class="fas fa-trash-alt mr-1"></i> Supprimer
+                                        <button onclick="showDeleteLogModal(<?php echo htmlspecialchars($log['id'], ENT_QUOTES, 'UTF-8'); ?>)" class="text-red-600 hover:text-red-800 text-xl transition duration-200" title="Supprimer ce log">
+                                            <i class="fas fa-trash-alt"></i>
                                         </button>
                                     </td>
                                 </tr>
@@ -728,143 +764,109 @@ try {
             <?php endif; ?>
         </div>
 
-
-        <footer class="text-center dashboard-footer text-xs">
+        <footer class="text-center dashboard-footer">
             <p>&copy; <?php echo date("Y"); ?> Airtel. Tous droits réservés.</p>
-            <p class="mt-1">Propulsé par une analyse de données sécurisée.</p>
         </footer>
     </div>
 
-    <!-- Modale de Détails de l'Agent Utilisateur -->
-    <div id="agentModal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
-        <div class="bg-white p-8 rounded-lg shadow-xl max-w-lg w-full relative">
-            <button class="modal-close-button" onclick="document.getElementById('agentModal').classList.add('hidden');">&times;</button>
-            <h3 class="text-2xl font-bold mb-4 text-airtel-red">Détails de l'Agent Utilisateur</h3>
-            <div id="modalContent">
-                <p class="mb-2"><strong class="text-gray-700">Agent :</strong> <span id="modalUserAgent" class="font-mono text-sm text-gray-800 break-all"></span></p>
-                <p><strong class="text-gray-700">Nombre de visites :</strong> <span id="modalCount" class="font-bold text-airtel-red"></span></p>
-            </div>
-            <div class="mt-6 text-right">
-                <button class="modal-button cancel" onclick="document.getElementById('agentModal').classList.add('hidden');">Fermer</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modale de Confirmation de Suppression de Log -->
-    <div id="deleteLogConfirmationModal" class="modal">
+    <div id="deleteConfirmationModal" class="modal">
         <div class="modal-content">
-            <button class="modal-close-button" onclick="hideDeleteLogModal()">&times;</button>
+            <span class="modal-close-button" onclick="closeDeleteLogModal()">&times;</span>
             <i class="fas fa-exclamation-triangle modal-icon"></i>
-            <h3 class="modal-title">Confirmer la Suppression du Log</h3>
-            <p class="modal-message" id="deleteLogModalMessage">Êtes-vous sûr de vouloir supprimer cette entrée de log ? Cette action est irréversible.</p>
+            <h3 class="modal-title">Confirmer la Suppression</h3>
+            <p class="modal-message">Êtes-vous sûr de vouloir supprimer le log n° <span id="logIdToDelete" class="font-bold"></span> ? Cette action est irréversible.</p>
             <div class="modal-buttons">
-                <button id="confirmDeleteLogBtn" class="modal-button confirm">Oui, Supprimer</button>
-                <button id="cancelDeleteLogBtn" class="modal-button cancel">Annuler</button>
+                <button class="modal-button cancel" onclick="closeDeleteLogModal()">Annuler</button>
+                <button class="modal-button confirm" onclick="deleteLog()">Supprimer</button>
             </div>
         </div>
     </div>
 
+    <div id="agentModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-button" onclick="closeAgentModal()">&times;</span>
+            <i class="fas fa-info-circle modal-icon text-blue-500"></i>
+            <h3 class="modal-title">Détails de l'Agent Utilisateur</h3>
+            <p class="modal-message text-left break-words">
+                <strong class="text-dark">Agent Utilisateur:</strong> <span id="modalUserAgent" class="text-muted"></span><br>
+                <strong class="text-dark">Nombre de Visites:</strong> <span id="modalAgentCount" class="text-muted"></span>
+            </p>
+            <div class="modal-buttons">
+                <button class="modal-button cancel" onclick="closeAgentModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Pour la modale des agents utilisateurs (existante)
-            const agentTableRows = document.querySelectorAll('.agent-table tbody tr[data-modal-target]');
-            const agentModal = document.getElementById('agentModal');
-            const modalUserAgent = document.getElementById('modalUserAgent');
-            const modalCount = document.getElementById('modalCount');
+        let currentLogIdToDelete = null;
 
-            agentTableRows.forEach(row => {
-                row.addEventListener('click', () => {
-                    const userAgent = row.dataset.userAgent;
-                    const count = row.dataset.count;
+        function showDeleteLogModal(logId) {
+            currentLogIdToDelete = logId;
+            document.getElementById('logIdToDelete').textContent = logId;
+            document.getElementById('deleteConfirmationModal').style.display = 'flex';
+        }
 
-                    modalUserAgent.textContent = userAgent;
-                    modalCount.textContent = count;
-                     
-                    agentModal.classList.remove('hidden');
-                });
-            });
+        function closeDeleteLogModal() {
+            document.getElementById('deleteConfirmationModal').style.display = 'none';
+            currentLogIdToDelete = null;
+        }
 
-            agentModal.addEventListener('click', (e) => {
-                if (e.target === agentModal) {
-                    agentModal.classList.add('hidden');
-                }
-            });
+        function deleteLog() {
+            if (currentLogIdToDelete) {
+                const formData = new FormData();
+                formData.append('action', 'delete_log');
+                formData.append('id', currentLogIdToDelete);
 
-            // --- NOUVEAU : Pour la modale de suppression de log ---
-            const deleteLogConfirmationModal = document.getElementById('deleteLogConfirmationModal');
-            const deleteLogModalMessage = document.getElementById('deleteLogModalMessage');
-            const confirmDeleteLogBtn = document.getElementById('confirmDeleteLogBtn');
-            const cancelDeleteLogBtn = document.getElementById('cancelDeleteLogBtn');
-
-            let currentLogIdToDelete = null; // Variable pour stocker l'ID du log à supprimer
-
-            // Fonction pour afficher la modale de confirmation de suppression
-            window.showDeleteLogModal = function(logId) {
-                currentLogIdToDelete = logId;
-                deleteLogModalMessage.textContent = `Êtes-vous sûr de vouloir supprimer l'entrée de log (ID: ${logId}) ? Cette action est irréversible.`;
-                deleteLogConfirmationModal.style.display = 'flex'; // Utiliser flex pour centrer
-            };
-
-            // Fonction pour masquer la modale de confirmation
-            function hideDeleteLogModal() {
-                deleteLogConfirmationModal.style.display = 'none';
-                currentLogIdToDelete = null;
-            }
-
-            // Gestionnaire de clic sur le bouton Confirmer de la modale de suppression
-            confirmDeleteLogBtn.onclick = function() {
-                if (currentLogIdToDelete !== null) {
-                    performDeleteLog(currentLogIdToDelete);
-                }
-                hideDeleteLogModal();
-            };
-
-            // Gestionnaire de clic sur le bouton Annuler de la modale de suppression
-            cancelDeleteLogBtn.onclick = function() {
-                hideDeleteLogModal();
-            };
-
-            // Fermer la modale si l'utilisateur clique en dehors du contenu
-            window.onclick = function(event) {
-                if (event.target == deleteLogConfirmationModal) {
-                    hideDeleteLogModal();
-                }
-                // Si vous avez d'autres modales, ajoutez-les ici
-            };
-
-            // Fonction réelle pour effectuer la suppression de log après confirmation
-            function performDeleteLog(logId) {
-                fetch('delete_visitor_log.php', { // Assurez-vous que ce fichier existe et gère la suppression
+                fetch('visitor_log.php', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'id=' + logId
+                    body: formData
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Supprimer la ligne du tableau après succès
-                        const row = document.getElementById('log-row-' + logId);
-                        if (row) {
-                            row.remove();
-                        }
-                        // Afficher un message de succès (peut être remplacé par une notification plus stylée)
-                        alert(data.message); 
-                        // Optionnel: Recharger la page pour mettre à jour les statistiques
-                        window.location.reload(); 
-                    } else {
-                        // Afficher un message d'erreur
-                        alert('Erreur: ' + data.message); 
-                    }
+                .then(response => response.text()) // Lire la réponse comme texte pour voir les redirections/erreurs
+                .then(text => {
+                    // Si le PHP a fait une redirection, le navigateur va la suivre.
+                    // Sinon, on peut gérer la réponse ici.
+                    // Dans notre cas, PHP fait une redirection, donc cette partie du code
+                    // ne sera pas exécutée si la redirection est réussie.
+                    // Si vous voulez une suppression AJAX sans rechargement, vous devriez
+                    // modifier le PHP pour qu'il renvoie du JSON au lieu d'une redirection.
+                    console.log("Response from delete:", text); // Pour le debug
+                    window.location.reload(); // Recharger la page pour refléter la suppression
                 })
                 .catch(error => {
-                    console.error('Erreur lors de la requête de suppression de log:', error);
-                    alert('Une erreur s\'est produite lors de la suppression du log.');
+                    console.error('Erreur lors de la suppression du log:', error);
+                    alert("Une erreur est survenue lors de la suppression. Veuillez consulter la console.");
+                    closeDeleteLogModal();
                 });
             }
+        }
+
+        // Script pour la modale d'agent utilisateur
+        document.querySelectorAll('.agent-table tbody tr').forEach(row => {
+            row.addEventListener('click', function() {
+                const userAgent = this.getAttribute('data-user-agent');
+                const count = this.getAttribute('data-count');
+                document.getElementById('modalUserAgent').textContent = userAgent;
+                document.getElementById('modalAgentCount').textContent = count;
+                document.getElementById('agentModal').style.display = 'flex';
+            });
         });
+
+        function closeAgentModal() {
+            document.getElementById('agentModal').style.display = 'none';
+        }
+
+        // Fermer les modales si l'utilisateur clique en dehors du contenu
+        window.onclick = function(event) {
+            const deleteModal = document.getElementById('deleteConfirmationModal');
+            const agentModal = document.getElementById('agentModal');
+
+            if (event.target == deleteModal) {
+                closeDeleteLogModal();
+            }
+            if (event.target == agentModal) {
+                closeAgentModal();
+            }
+        }
     </script>
 </body>
 </html>
